@@ -1,0 +1,25 @@
+[package]
+name = "imgui-baseview"
+version = "0.0.0"
+authors = ["Billy Messenger <BillyDM@protonmail.com>"]
+edition = "2018"
+description = "A baseview backend for imgui"
+license = "MIT"
+repository = "https://github.com/BillyDM/imgui-baseview"
+documentation = "https://docs.rs/imgui-baseview"
+keywords = ["gui", "ui", "graphics", "interface", "widgets"]
+categories = ["gui"]
+readme = "README.md"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[features]
+default = ["opengl"]
+opengl = ["raw-gl-context", "imgui-opengl-renderer"]
+
+[dependencies]
+imgui = { version = "0.6.1", default-features = false }
+raw-gl-context = { version = "0.1.0", optional = true }
+imgui-opengl-renderer = { version = "0.10.0", optional = true }
+baseview = { git = "https://github.com/RustAudio/baseview.git", branch = "master" }
+rtrb = "0.1.2"
