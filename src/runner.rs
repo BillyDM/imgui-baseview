@@ -1,4 +1,5 @@
-use baseview::{WindowHandler, Window, Event, Parent};
+use baseview::{WindowHandler, Window, Event};
+use crate::renderer::Renderer;
 
 pub(crate) enum HandleMessage {
     CloseRequested,
@@ -25,6 +26,7 @@ impl Handle {
 #[allow(missing_debug_implementations)]
 pub struct Runner {
     handle_rx: rtrb::Consumer<HandleMessage>,
+    renderer: Renderer,
 }
 
 impl Runner {
@@ -40,8 +42,12 @@ impl Runner {
             Window::open(
                 window_settings,
                 move |window: &mut baseview::Window<'_>| -> Runner {
+
+                    let renderer = Renderer::new(window);
+
                     Self {
                         handle_rx,
+                        renderer,
                     }
                 }
             )
