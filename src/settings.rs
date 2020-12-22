@@ -1,5 +1,7 @@
 //! Configure your application;
 
+use crate::HiDpiMode;
+
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum WindowScalePolicy {
     /// Use the provided scale factor.
@@ -34,6 +36,29 @@ pub struct Settings {
     ///
     /// [`Window`]: struct.Window.html
     pub window: Window,
+
+    /// The color to clear the screen on render (R, G, B).
+    pub clear_color: (f32, f32, f32),
+
+    /// DPI factor handling mode.
+    ///
+    /// Applications that use imgui-rs might want to customize the used DPI factor and not use
+    /// directly the value coming from baseview.
+    ///
+    /// **Note: if you use a mode other than default and the DPI factor is adjusted, baseview and imgui-rs
+    /// will use different logical coordinates, so be careful if you pass around logical size or
+    /// position values.**
+    pub hidpi_mode: HiDpiMode,
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Self {
+            window: Window::default(),
+            clear_color: (0.0, 0.0, 0.0),
+            hidpi_mode: HiDpiMode::Default,
+        }
+    }
 }
 
 /// The window settings of an application.

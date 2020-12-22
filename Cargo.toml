@@ -22,5 +22,6 @@ imgui = { version = "0.6.1", default-features = false }
 raw-gl-context = { version = "0.1.0", optional = true }
 imgui-opengl-renderer = { version = "0.10.0", optional = true }
 gl = { version = "0.14.0", optional = true }
+keyboard-types = { version = "0.5", default-features = false }
 baseview = { git = "https://github.com/RustAudio/baseview.git", branch = "master" }
 rtrb = "0.1.2"

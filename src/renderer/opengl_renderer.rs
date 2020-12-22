@@ -24,11 +24,11 @@ impl Renderer {
         }
     }
 
-    pub fn render(&mut self, imgui_ui: imgui::Ui) {
+    pub fn render(&mut self, imgui_ui: imgui::Ui, clear_color: (f32, f32, f32)) {
         self.context.make_current();
 
         unsafe {
-            gl::ClearColor(0.2, 0.2, 0.2, 1.0);
+            gl::ClearColor(clear_color.0, clear_color.1, clear_color.2, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT);
         }
 
