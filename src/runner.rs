@@ -50,7 +50,15 @@ impl Handle {
 
 /// Handles an imgui-baseview application
 #[allow(missing_debug_implementations)]
-pub struct Runner {
+pub struct Runner<State, U>
+where
+    State: 'static + Send,
+    U: Fn(&mut bool, &imgui::Ui, &mut State),
+    U: 'static + Send,
+{
+    user_state: State,
+    user_update: U,
+
     handle_rx: rtrb::Consumer<HandleMessage>,
     imgui_context: imgui::Context,
     renderer: Renderer,
@@ -63,11 +71,22 @@ pub struct Runner {
     hidpi_factor: f64,
     cursor_cache: Option<mouse::CursorSettings>,
     mouse_buttons: [mouse::Button; 5],
+    run: bool,
 }
 
-impl Runner {
+impl<State, U> Runner<State, U>
+where
+    State: 'static + Send,
+    U: Fn(&mut bool, &imgui::Ui, &mut State),
+    U: 'static + Send,
+{
     /// Open a new window
-    pub fn open(settings: Settings, parent: Parent) -> (Handle, Option<baseview::AppRunner>) {
+    pub fn open(
+        settings: Settings,
+        parent: Parent,
+        state: State,
+        update: U,
+    ) -> (Handle, Option<baseview::AppRunner>) {
         let (handle_tx, handle_rx) = rtrb::RingBuffer::new(Handle::QUEUE_SIZE).split();
 
         let scale_policy = settings.window.scale_policy;
@@ -86,7 +105,7 @@ impl Runner {
             Handle::new(handle_tx),
             Window::open(
                 window_settings,
-                move |window: &mut baseview::Window<'_>| -> Runner {
+                move |window: &mut baseview::Window<'_>| -> Runner<State, U> {
                     use imgui::{BackendFlags, Key};
                     use keyboard_types::Code;
 
@@ -140,6 +159,9 @@ impl Runner {
                     let renderer = Renderer::new(window, &mut imgui_context);
 
                     Self {
+                        user_state: state,
+                        user_update: update,
+
                         handle_rx,
                         imgui_context,
                         renderer,
@@ -152,6 +174,7 @@ impl Runner {
                         hidpi_factor,
                         cursor_cache: None,
                         mouse_buttons: [mouse::Button::INIT; 5],
+                        run: true,
                     }
                 },
             ),
@@ -159,7 +182,12 @@ impl Runner {
     }
 }
 
-impl WindowHandler for Runner {
+impl<State, U> WindowHandler for Runner<State, U>
+where
+    State: 'static + Send,
+    U: Fn(&mut bool, &imgui::Ui, &mut State),
+    U: 'static + Send,
+{
     fn on_frame(&mut self) {
         // Poll handle messages.
         while let Ok(message) = self.handle_rx.pop() {
@@ -196,7 +224,8 @@ impl WindowHandler for Runner {
         }
 
         let ui = self.imgui_context.frame();
-        ui.show_demo_window(&mut true);
+
+        (self.user_update)(&mut self.run, &ui, &mut self.user_state);
 
         let io = ui.io();
         if !io
