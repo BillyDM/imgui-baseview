@@ -22,7 +22,7 @@ SOFTWARE.
 
 use std::cell::Cell;
 
-use baseview::MouseCursor;
+//use baseview::MouseCursor;
 
 /// State of a single mouse button. Used so that we can detect cases where mouse
 /// press and release occur on the same frame (seems surprisingly frequent on
@@ -62,6 +62,9 @@ pub(crate) struct CursorSettings {
     pub draw_cursor: bool,
 }
 
+// TODO: Set baseview cursor.
+
+/*
 pub(crate) fn to_baseview_cursor(cursor: imgui::MouseCursor) -> baseview::MouseCursor {
     match cursor {
         imgui::MouseCursor::Arrow => MouseCursor::Default,
@@ -91,3 +94,4 @@ impl CursorSettings {
         }
     }
 }
+*/
