@@ -4,7 +4,7 @@ fn main() {
     let settings = Settings {
         window: settings::Window {
             title: String::from("imgui-baseview hello world"),
-            logical_size: (500, 350),
+            logical_size: (900, 500),
             scale_policy: WindowScalePolicy::SystemScaleFactor,
         },
         clear_color: (0.0, 0.0, 0.0),

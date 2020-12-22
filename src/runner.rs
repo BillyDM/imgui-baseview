@@ -161,6 +161,17 @@ impl Runner {
 
 impl WindowHandler for Runner {
     fn on_frame(&mut self) {
+        // Poll handle messages.
+        while let Ok(message) = self.handle_rx.pop() {
+            match message {
+                HandleMessage::CloseRequested => {
+                    // TODO: Send close message.
+
+                    return;
+                }
+            }
+        }
+
         {
             let io = self.imgui_context.io_mut();
 
@@ -178,13 +189,11 @@ impl WindowHandler for Runner {
 
                 // TODO: Set baseview cursor position.
             }
-        }
 
-        let now = Instant::now();
-        let delta = now - self.last_frame;
-        let delta_s = delta.as_secs() as f32 + delta.subsec_nanos() as f32 / 1_000_000_000.0;
-        self.last_frame = now;
-        self.imgui_context.io_mut().delta_time = delta_s;
+            let now = Instant::now();
+            io.update_delta_time(now.duration_since(self.last_frame));
+            self.last_frame = now;
+        }
 
         let ui = self.imgui_context.frame();
         ui.show_demo_window(&mut true);
