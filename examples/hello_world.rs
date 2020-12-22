@@ -1,4 +1,4 @@
-use imgui_baseview::{Runner, settings, Settings, WindowScalePolicy, Parent, HiDpiMode};
+use imgui_baseview::{settings, HiDpiMode, Parent, Runner, Settings, WindowScalePolicy};
 
 fn main() {
     let settings = Settings {

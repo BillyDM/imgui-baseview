@@ -20,10 +20,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-use baseview::{WindowHandler, Window, Event, Parent};
-use crate::renderer::Renderer;
-use crate::{Settings, WindowScalePolicy, HiDpiMode};
 use crate::mouse;
+use crate::renderer::Renderer;
+use crate::{HiDpiMode, Settings, WindowScalePolicy};
+use baseview::{Event, Parent, Window, WindowHandler};
 
 use std::time::Instant;
 
@@ -40,9 +40,7 @@ impl Handle {
     pub const QUEUE_SIZE: usize = 10;
 
     pub(crate) fn new(handle_tx: rtrb::Producer<HandleMessage>) -> Self {
-        Self {
-            handle_tx,
-        }
+        Self { handle_tx }
     }
 
     pub fn request_window_close(&mut self) {
@@ -69,13 +67,9 @@ pub struct Runner {
 
 impl Runner {
     /// Open a new window
-    pub fn open(
-        settings: Settings,
-        parent: Parent,
-    ) -> (Handle, Option<baseview::AppRunner>) {
-        let (handle_tx, handle_rx) =
-            rtrb::RingBuffer::new(Handle::QUEUE_SIZE).split();
-        
+    pub fn open(settings: Settings, parent: Parent) -> (Handle, Option<baseview::AppRunner>) {
+        let (handle_tx, handle_rx) = rtrb::RingBuffer::new(Handle::QUEUE_SIZE).split();
+
         let scale_policy = settings.window.scale_policy;
 
         let logical_width = settings.window.logical_size.0 as f64;
@@ -159,8 +153,8 @@ impl Runner {
                         cursor_cache: None,
                         mouse_buttons: [mouse::Button::INIT; 5],
                     }
-                }
-            )
+                },
+            ),
         )
     }
 }
@@ -179,11 +173,10 @@ impl WindowHandler for Runner {
                     baseview::Point::new(io.mouse_pos[0] as f64, io.mouse_pos[1] as f64),
                     self.scale_factor,
                     self.hidpi_mode,
-                    self.hidpi_factor
+                    self.hidpi_factor,
                 );
 
                 // TODO: Set baseview cursor position.
-
             }
         }
 
@@ -197,13 +190,15 @@ impl WindowHandler for Runner {
         ui.show_demo_window(&mut true);
 
         let io = ui.io();
-        if !io.config_flags.contains(imgui::ConfigFlags::NO_MOUSE_CURSOR_CHANGE) {
+        if !io
+            .config_flags
+            .contains(imgui::ConfigFlags::NO_MOUSE_CURSOR_CHANGE)
+        {
             let cursor = mouse::CursorSettings {
                 cursor: ui.mouse_cursor(),
                 draw_cursor: io.mouse_draw_cursor,
             };
             if self.cursor_cache != Some(cursor) {
-                
                 // TODO : Set baseview cursor.
 
                 // cursor.apply(window);
@@ -218,82 +213,94 @@ impl WindowHandler for Runner {
         let io = self.imgui_context.io_mut();
 
         match event {
-            baseview::Event::Mouse(event) => {
-                match event {
-                    baseview::MouseEvent::CursorMoved { position } => {
-                        let position = scale_pos_from_baseview(
-                            position,
-                            self.scale_factor,
-                            self.hidpi_mode,
-                            self.hidpi_factor
-                        );
-                        io.mouse_pos = [position.x as f32, position.y as f32];
-                    },
-                    baseview::MouseEvent::ButtonPressed(button) => {
-                        match button {
-                            baseview::MouseButton::Left => self.mouse_buttons[0].set(true),
-                            baseview::MouseButton::Middle => self.mouse_buttons[1].set(true),
-                            baseview::MouseButton::Right => self.mouse_buttons[2].set(true),
-                            baseview::MouseButton::Other(3) => self.mouse_buttons[3].set(true),
-                            baseview::MouseButton::Other(4) => self.mouse_buttons[4].set(true),
-                            _ => {},
-                        }
+            baseview::Event::Mouse(event) => match event {
+                baseview::MouseEvent::CursorMoved { position } => {
+                    let position = scale_pos_from_baseview(
+                        position,
+                        self.scale_factor,
+                        self.hidpi_mode,
+                        self.hidpi_factor,
+                    );
+                    io.mouse_pos = [position.x as f32, position.y as f32];
+                }
+                baseview::MouseEvent::ButtonPressed(button) => match button {
+                    baseview::MouseButton::Left => self.mouse_buttons[0].set(true),
+                    baseview::MouseButton::Middle => self.mouse_buttons[1].set(true),
+                    baseview::MouseButton::Right => self.mouse_buttons[2].set(true),
+                    baseview::MouseButton::Other(3) => self.mouse_buttons[3].set(true),
+                    baseview::MouseButton::Other(4) => self.mouse_buttons[4].set(true),
+                    _ => {}
+                },
+                baseview::MouseEvent::ButtonReleased(button) => match button {
+                    baseview::MouseButton::Left => self.mouse_buttons[0].set(false),
+                    baseview::MouseButton::Middle => self.mouse_buttons[1].set(false),
+                    baseview::MouseButton::Right => self.mouse_buttons[2].set(false),
+                    baseview::MouseButton::Other(3) => self.mouse_buttons[3].set(false),
+                    baseview::MouseButton::Other(4) => self.mouse_buttons[4].set(false),
+                    _ => {}
+                },
+                baseview::MouseEvent::WheelScrolled(scroll_delta) => match scroll_delta {
+                    baseview::ScrollDelta::Lines { x, y } => {
+                        io.mouse_wheel_h = x;
+                        io.mouse_wheel = y;
                     }
-                    baseview::MouseEvent::ButtonReleased(button) => {
-                        match button {
-                            baseview::MouseButton::Left => self.mouse_buttons[0].set(false),
-                            baseview::MouseButton::Middle => self.mouse_buttons[1].set(false),
-                            baseview::MouseButton::Right => self.mouse_buttons[2].set(false),
-                            baseview::MouseButton::Other(3) => self.mouse_buttons[3].set(false),
-                            baseview::MouseButton::Other(4) => self.mouse_buttons[4].set(false),
-                            _ => {},
+                    baseview::ScrollDelta::Pixels { x, y } => {
+                        if x < 0.0 {
+                            io.mouse_wheel_h -= 1.0;
+                        } else if x > 1.0 {
+                            io.mouse_wheel_h += 1.0;
                         }
-                    }
-                    baseview::MouseEvent::WheelScrolled(scroll_delta) => {
-                        match scroll_delta {
-                            baseview::ScrollDelta::Lines { x, y } => {
-                                io.mouse_wheel_h = x;
-                                io.mouse_wheel = y;
-                            },
-                            baseview::ScrollDelta::Pixels { x, y } => {
-                                if x < 0.0 {
-                                    io.mouse_wheel_h -= 1.0;
-                                } else if x > 1.0 {
-                                    io.mouse_wheel_h += 1.0;
-                                }
 
-                                if y < 0.0 {
-                                    io.mouse_wheel -= 1.0;
-                                } else if y > 1.0 {
-                                    io.mouse_wheel_h += 1.0;
-                                }
+                        if y < 0.0 {
+                            io.mouse_wheel -= 1.0;
+                        } else if y > 1.0 {
+                            io.mouse_wheel_h += 1.0;
+                        }
+                    }
+                },
+                _ => {}
+            },
+            baseview::Event::Keyboard(event) => {
+                use keyboard_types::Code;
+
+                let pressed = event.state == keyboard_types::KeyState::Down;
+
+                io.keys_down[event.code as usize] = pressed;
+
+                // This is a bit redundant here, but we'll leave it in. The OS occasionally
+                // fails to send modifiers keys, but it doesn't seem to send false-positives,
+                // so double checking isn't terrible in case some system *doesn't* send
+                // device events sometimes.
+                match event.code {
+                    Code::ShiftLeft | Code::ShiftRight => io.key_shift = pressed,
+                    Code::ControlLeft | Code::ControlRight => io.key_ctrl = pressed,
+                    Code::AltLeft | Code::AltRight => io.key_alt = pressed,
+                    Code::MetaLeft | Code::MetaRight => io.key_super = pressed,
+                    _ => (),
+                }
+
+                if pressed {
+                    if let keyboard_types::Key::Character(written) = event.key {
+                        for chr in written.chars() {
+                            // Exclude the backspace key ('\u{7f}'). Otherwise we will insert this char and then
+                            // delete it.
+                            if chr != '\u{7f}' {
+                                io.add_input_character(chr)
                             }
                         }
                     }
-                    baseview::MouseEvent::CursorEntered => {
-
-                    }
-                    baseview::MouseEvent::CursorLeft => {
-
-                    }
-                    _ => {}
                 }
-            },
-            baseview::Event::Keyboard(event) => {
-
-            },
+            }
             baseview::Event::Window(event) => {
                 match event {
                     baseview::WindowEvent::Resized(window_info) => {
                         self.scale_factor = match self.scale_policy {
                             WindowScalePolicy::ScaleFactor(scale) => scale,
-                            WindowScalePolicy::SystemScaleFactor => {
-                                window_info.scale()
-                            }
+                            WindowScalePolicy::SystemScaleFactor => window_info.scale(),
                         };
 
                         let new_hidpi_factor = self.hidpi_mode.apply(self.scale_factor);
-                        
+
                         // Mouse position needs to be changed while we still have both the old and the new
                         // values
                         if io.mouse_pos[0].is_finite() && io.mouse_pos[1].is_finite() {
@@ -310,20 +317,14 @@ impl WindowHandler for Runner {
                             (window_info.physical_size().height as f64 / self.hidpi_factor) as f32,
                         ];
 
-                        io.display_framebuffer_scale = [self.hidpi_factor as f32, self.hidpi_factor as f32];
+                        io.display_framebuffer_scale =
+                            [self.hidpi_factor as f32, self.hidpi_factor as f32];
                         io.display_size = logical_size;
-                    },
-                    baseview::WindowEvent::Focused => {
-
-                    },
-                    baseview::WindowEvent::Unfocused => {
-
-                    },
-                    baseview::WindowEvent::WillClose => {
-
-                    },
+                    }
+                    baseview::WindowEvent::WillClose => {}
+                    _ => {}
                 }
-            },
+            }
         }
     }
 }
@@ -340,12 +341,10 @@ fn scale_pos_from_baseview(
 ) -> baseview::Point {
     match hidpi_mode {
         HiDpiMode::Default => logical_pos,
-        _ => {
-            baseview::Point::new(
-                logical_pos.x * scale_factor / hidpi_factor,
-                logical_pos.y * scale_factor / hidpi_factor,
-            )
-        }
+        _ => baseview::Point::new(
+            logical_pos.x * scale_factor / hidpi_factor,
+            logical_pos.y * scale_factor / hidpi_factor,
+        ),
     }
 }
 
@@ -361,11 +360,9 @@ fn scale_pos_for_baseview(
 ) -> baseview::Point {
     match hidpi_mode {
         HiDpiMode::Default => logical_pos,
-        _ => {
-            baseview::Point::new(
-                logical_pos.x * hidpi_factor / scale_factor,
-                logical_pos.y * hidpi_factor / scale_factor,
-            )
-        }
+        _ => baseview::Point::new(
+            logical_pos.x * hidpi_factor / scale_factor,
+            logical_pos.y * hidpi_factor / scale_factor,
+        ),
     }
 }

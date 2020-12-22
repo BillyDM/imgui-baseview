@@ -1,5 +1,5 @@
-use raw_gl_context::{GlConfig, GlContext};
 use baseview::Window;
+use raw_gl_context::{GlConfig, GlContext};
 
 pub struct Renderer {
     context: GlContext,
@@ -14,7 +14,9 @@ impl Renderer {
 
         gl::load_with(|s| context.get_proc_address(s) as _);
 
-        let imgui_renderer = imgui_opengl_renderer::Renderer::new(imgui_context, |s| context.get_proc_address(s) as _);
+        let imgui_renderer = imgui_opengl_renderer::Renderer::new(imgui_context, |s| {
+            context.get_proc_address(s) as _
+        });
 
         context.make_not_current();
 

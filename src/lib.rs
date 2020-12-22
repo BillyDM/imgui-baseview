@@ -1,12 +1,12 @@
-mod runner;
-mod renderer;
-mod mouse;
 mod dpi;
+mod mouse;
+mod renderer;
+mod runner;
 
 pub mod settings;
 
+pub use dpi::HiDpiMode;
 pub use runner::Runner;
 pub use settings::{Settings, WindowScalePolicy};
-pub use dpi::HiDpiMode;
 
-pub use baseview::{Parent, Point, PhyPoint, Size, PhySize};
+pub use baseview::{Parent, PhyPoint, PhySize, Point, Size};

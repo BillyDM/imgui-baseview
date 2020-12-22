@@ -20,9 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-
 use std::cell::Cell;
-use std::cmp::Ordering;
 
 use baseview::MouseCursor;
 
@@ -64,7 +62,7 @@ pub(crate) struct CursorSettings {
     pub draw_cursor: bool,
 }
 
-fn to_baseview_cursor(cursor: imgui::MouseCursor) -> baseview::MouseCursor {
+pub(crate) fn to_baseview_cursor(cursor: imgui::MouseCursor) -> baseview::MouseCursor {
     match cursor {
         imgui::MouseCursor::Arrow => MouseCursor::Default,
         imgui::MouseCursor::TextInput => MouseCursor::Text,
@@ -79,8 +77,7 @@ fn to_baseview_cursor(cursor: imgui::MouseCursor) -> baseview::MouseCursor {
 }
 
 impl CursorSettings {
-    fn apply(&self) {
-
+    pub(crate) fn apply(&self) {
         // TODO
 
         match self.cursor {
@@ -90,7 +87,7 @@ impl CursorSettings {
             }
             _ => {
                 //window.set_cursor_visible(false);
-            },
+            }
         }
     }
 }
