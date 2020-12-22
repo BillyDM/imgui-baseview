@@ -1,6 +1,9 @@
 mod runner;
 mod renderer;
 
-pub use runner::Runner;
+pub mod settings;
 
-pub use baseview::{WindowOpenOptions, Size, WindowScalePolicy, Parent};
+pub use runner::Runner;
+pub use settings::{Settings, WindowScalePolicy};
+
+pub use baseview::Parent;
