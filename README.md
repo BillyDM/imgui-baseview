@@ -1,5 +1,5 @@
 # imgui-baseview
-![Test](https://github.com/BillyDM/iced_baseview/workflows/Rust/badge.svg)
+![Test](https://github.com/BillyDM/imgui-baseview/workflows/Rust/badge.svg)
 [![Crates.io](https://img.shields.io/crates/v/imgui-baseview.svg)](https://crates.io/crates/imgui-baseview)
 [![License](https://img.shields.io/crates/l/imgui-baseview.svg)](https://github.com/BillyDM/imgui-baseview/blob/main/LICENSE)
 
