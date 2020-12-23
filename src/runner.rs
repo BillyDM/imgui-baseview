@@ -181,6 +181,32 @@ where
             ),
         )
     }
+
+    /// Scales a logical position from baseview using the current DPI mode.
+    ///
+    /// This utility function is useful if you are using a DPI mode other than default, and want
+    /// your application to use the same logical coordinates as imgui-rs.
+    pub fn scale_pos_from_baseview(&self, logical_pos: baseview::Point) -> baseview::Point {
+        scale_pos_from_baseview(
+            logical_pos,
+            self.scale_factor,
+            self.hidpi_mode,
+            self.hidpi_factor,
+        )
+    }
+
+    /// Scales a logical position for baseview using the current DPI mode.
+    ///
+    /// This utility function is useful if you are using a DPI mode other than default, and want
+    /// your application to use the same logical coordinates as imgui-rs.
+    pub fn scale_pos_for_baseview(&self, logical_pos: baseview::Point) -> baseview::Point {
+        scale_pos_for_baseview(
+            logical_pos,
+            self.scale_factor,
+            self.hidpi_mode,
+            self.hidpi_factor,
+        )
+    }
 }
 
 impl<State, U> WindowHandler for Runner<State, U>
@@ -372,6 +398,7 @@ where
 ///
 /// This utility function is useful if you are using a DPI mode other than default, and want
 /// your application to use the same logical coordinates as imgui-rs.
+#[inline]
 fn scale_pos_from_baseview(
     logical_pos: baseview::Point,
     scale_factor: f64,
@@ -391,6 +418,7 @@ fn scale_pos_from_baseview(
 ///
 /// This utility function is useful if you are using a DPI mode other than default, and want
 /// your application to use the same logical coordinates as imgui-rs.
+#[inline]
 fn scale_pos_for_baseview(
     logical_pos: baseview::Point,
     scale_factor: f64,
