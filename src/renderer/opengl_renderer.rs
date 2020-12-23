@@ -1,5 +1,7 @@
 use baseview::Window;
-use raw_gl_context::{GlConfig, GlContext};
+use raw_gl_context::GlContext;
+
+pub use raw_gl_context::GlConfig as RenderSettings;
 
 pub struct Renderer {
     context: GlContext,
@@ -7,8 +9,12 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn new(window: &Window, imgui_context: &mut imgui::Context) -> Self {
-        let context = GlContext::create(window, GlConfig::default()).unwrap();
+    pub fn new(
+        window: &Window,
+        imgui_context: &mut imgui::Context,
+        render_settings: RenderSettings,
+    ) -> Self {
+        let context = GlContext::create(window, render_settings).unwrap();
 
         context.make_current();
 
