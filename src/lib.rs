@@ -6,6 +6,7 @@ mod runner;
 pub mod settings;
 
 pub use dpi::HiDpiMode;
+pub use renderer::RenderSettings;
 pub use runner::Runner;
 pub use settings::{Settings, WindowScalePolicy};
 

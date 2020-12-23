@@ -1,6 +1,6 @@
 //! Configure your application;
 
-use crate::HiDpiMode;
+use crate::{HiDpiMode, RenderSettings};
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum WindowScalePolicy {
@@ -28,7 +28,6 @@ impl From<WindowScalePolicy> for baseview::WindowScalePolicy {
 }
 
 /// The settings of an application.
-#[derive(Debug)]
 pub struct Settings {
     /// The [`Window`] settings
     ///
@@ -47,6 +46,9 @@ pub struct Settings {
     /// will use different logical coordinates, so be careful if you pass around logical size or
     /// position values.**
     pub hidpi_mode: HiDpiMode,
+
+    /// The settings for the rendering backend.
+    pub render_settings: RenderSettings,
 }
 
 impl Default for Settings {
@@ -55,6 +57,7 @@ impl Default for Settings {
             window: Window::default(),
             clear_color: (0.0, 0.0, 0.0),
             hidpi_mode: HiDpiMode::Default,
+            render_settings: RenderSettings::default(),
         }
     }
 }

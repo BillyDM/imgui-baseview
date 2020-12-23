@@ -1,5 +1,7 @@
 use imgui::Ui;
-use imgui_baseview::{settings, HiDpiMode, Parent, Runner, Settings, WindowScalePolicy};
+use imgui_baseview::{
+    settings, HiDpiMode, Parent, RenderSettings, Runner, Settings, WindowScalePolicy,
+};
 
 fn main() {
     let settings = Settings {
@@ -10,6 +12,7 @@ fn main() {
         },
         clear_color: (0.0, 0.0, 0.0),
         hidpi_mode: HiDpiMode::Default,
+        render_settings: RenderSettings::default(),
     };
 
     let state = ();

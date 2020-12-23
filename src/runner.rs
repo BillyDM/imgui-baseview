@@ -156,7 +156,8 @@ where
                         env!("CARGO_PKG_VERSION")
                     ))));
 
-                    let renderer = Renderer::new(window, &mut imgui_context);
+                    let renderer =
+                        Renderer::new(window, &mut imgui_context, settings.render_settings);
 
                     Self {
                         user_state: state,
