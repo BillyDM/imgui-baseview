@@ -12,18 +12,17 @@ A [`baseview`] backend for [`imgui-rs`].
 ## Simple Usage Example
 
 ```rust
+use baseview::{Parent, Size, WindowOpenOptions, WindowScalePolicy};
 use imgui::{im_str, Condition, Ui, Window};
-use imgui_baseview::{
-    settings, HiDpiMode, Parent, RenderSettings, Runner,
-    Settings, WindowScalePolicy,
-};
+use imgui_baseview::{HiDpiMode, RenderSettings, Runner, Settings};
 
 fn main() {
     let settings = Settings {
-        window: settings::Window {
+        window: WindowOpenOptions {
             title: String::from("imgui-baseview hello world"),
-            logical_size: (300, 110),
-            scale_policy: WindowScalePolicy::SystemScaleFactor,
+            size: Size::new(300.0, 110.0),
+            parent: Parent::None,
+            scale: WindowScalePolicy::SystemScaleFactor,
         },
         clear_color: (0.0, 0.0, 0.0),
         hidpi_mode: HiDpiMode::Default,
@@ -34,7 +33,6 @@ fn main() {
 
     let (_, opt_app_runner) = Runner::open(
         settings,
-        Parent::None,
         state,
         move |run: &mut bool, ui: &Ui, _state: &mut ()| {
             Window::new(im_str!("Hello world"))

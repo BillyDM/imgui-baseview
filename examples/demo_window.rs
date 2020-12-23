@@ -1,14 +1,14 @@
+use baseview::{Parent, Size, WindowOpenOptions, WindowScalePolicy};
 use imgui::Ui;
-use imgui_baseview::{
-    settings, HiDpiMode, Parent, RenderSettings, Runner, Settings, WindowScalePolicy,
-};
+use imgui_baseview::{HiDpiMode, RenderSettings, Runner, Settings};
 
 fn main() {
     let settings = Settings {
-        window: settings::Window {
+        window: WindowOpenOptions {
             title: String::from("imgui-baseview demo window"),
-            logical_size: (800, 600),
-            scale_policy: WindowScalePolicy::SystemScaleFactor,
+            size: Size::new(800.0, 600.0),
+            parent: Parent::None,
+            scale: WindowScalePolicy::SystemScaleFactor,
         },
         clear_color: (0.0, 0.0, 0.0),
         hidpi_mode: HiDpiMode::Default,
@@ -19,7 +19,6 @@ fn main() {
 
     let (_, opt_app_runner) = Runner::open(
         settings,
-        Parent::None,
         state,
         move |run: &mut bool, ui: &Ui, _state: &mut ()| {
             ui.show_demo_window(run);

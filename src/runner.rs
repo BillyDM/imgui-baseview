@@ -22,8 +22,8 @@ SOFTWARE.
 
 use crate::mouse;
 use crate::renderer::Renderer;
-use crate::{HiDpiMode, Settings, WindowScalePolicy};
-use baseview::{Event, Parent, Window, WindowHandler};
+use crate::{HiDpiMode, Settings};
+use baseview::{Event, Window, WindowHandler, WindowScalePolicy};
 
 use std::time::Instant;
 
@@ -83,28 +83,28 @@ where
     /// Open a new window
     pub fn open(
         settings: Settings,
-        parent: Parent,
         state: State,
         update: U,
     ) -> (Handle, Option<baseview::AppRunner>) {
         let (handle_tx, handle_rx) = rtrb::RingBuffer::new(Handle::QUEUE_SIZE).split();
 
-        let scale_policy = settings.window.scale_policy;
-
-        let logical_width = settings.window.logical_size.0 as f64;
-        let logical_height = settings.window.logical_size.1 as f64;
-
-        let window_settings = baseview::WindowOpenOptions {
-            title: settings.window.title.clone(),
-            size: baseview::Size::new(logical_width, logical_height),
-            scale: settings.window.scale_policy.into(),
-            parent,
+        // WindowScalePolicy does not implement copy/clone.
+        let scale_policy = match &settings.window.scale {
+            WindowScalePolicy::SystemScaleFactor => WindowScalePolicy::SystemScaleFactor,
+            WindowScalePolicy::ScaleFactor(scale) => WindowScalePolicy::ScaleFactor(*scale),
         };
+
+        let logical_width = settings.window.size.width as f64;
+        let logical_height = settings.window.size.height as f64;
+
+        let hidpi_mode = settings.hidpi_mode;
+        let render_settings = settings.render_settings;
+        let clear_color = settings.clear_color;
 
         (
             Handle::new(handle_tx),
             Window::open(
-                window_settings,
+                settings.window,
                 move |window: &mut baseview::Window<'_>| -> Runner<State, U> {
                     use imgui::{BackendFlags, Key};
                     use keyboard_types::Code;
@@ -119,7 +119,7 @@ where
                         WindowScalePolicy::ScaleFactor(scale) => scale,
                         WindowScalePolicy::SystemScaleFactor => 1.0,
                     };
-                    let hidpi_factor = settings.hidpi_mode.apply(scale);
+                    let hidpi_factor = hidpi_mode.apply(scale);
                     let logical_size = [
                         (logical_width as f64 * scale / hidpi_factor) as f32,
                         (logical_height as f64 * scale / hidpi_factor) as f32,
@@ -156,8 +156,7 @@ where
                         env!("CARGO_PKG_VERSION")
                     ))));
 
-                    let renderer =
-                        Renderer::new(window, &mut imgui_context, settings.render_settings);
+                    let renderer = Renderer::new(window, &mut imgui_context, render_settings);
 
                     Self {
                         user_state: state,
@@ -167,11 +166,11 @@ where
                         imgui_context,
                         renderer,
                         last_frame: Instant::now(),
-                        clear_color: settings.clear_color,
+                        clear_color,
                         scale_policy,
                         scale_factor: scale,
 
-                        hidpi_mode: settings.hidpi_mode,
+                        hidpi_mode,
                         hidpi_factor,
                         cursor_cache: None,
                         mouse_buttons: [mouse::Button::INIT; 5],
