@@ -20,7 +20,7 @@ fn main() {
     let (_, opt_app_runner) = Runner::open(
         settings,
         state,
-        move |run: &mut bool, ui: &mut Ui, _state: &mut ()| {
+        move |run: &mut bool, ui: &Ui, _state: &mut ()| {
             ui.show_demo_window(run);
         },
     );

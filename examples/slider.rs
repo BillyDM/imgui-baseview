@@ -18,7 +18,7 @@ fn main() {
     let (_, opt_app_runner) = Runner::open(
         settings,
         State::default(),
-        move |run: &mut bool, ui: &mut Ui, state: &mut State| {
+        move |run: &mut bool, ui: &Ui, state: &mut State| {
             example_selector(run, ui, state);
             match state.example {
                 1 => example_1(ui, state),

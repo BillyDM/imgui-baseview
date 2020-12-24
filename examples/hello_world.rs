@@ -20,7 +20,7 @@ fn main() {
     let (_, opt_app_runner) = Runner::open(
         settings,
         state,
-        move |run: &mut bool, ui: &mut Ui, _state: &mut ()| {
+        move |run: &mut bool, ui: &Ui, _state: &mut ()| {
             Window::new(im_str!("Hello world"))
                 .opened(run)
                 .size([300.0, 110.0], Condition::FirstUseEver)
