@@ -53,7 +53,7 @@ impl Handle {
 pub struct Runner<State, U>
 where
     State: 'static + Send,
-    U: Fn(&mut bool, &imgui::Ui, &mut State),
+    U: Fn(&mut bool, &mut imgui::Ui, &mut State),
     U: 'static + Send,
 {
     user_state: State,
@@ -77,7 +77,7 @@ where
 impl<State, U> Runner<State, U>
 where
     State: 'static + Send,
-    U: Fn(&mut bool, &imgui::Ui, &mut State),
+    U: Fn(&mut bool, &mut imgui::Ui, &mut State),
     U: 'static + Send,
 {
     /// Open a new window
@@ -211,7 +211,7 @@ where
 impl<State, U> WindowHandler for Runner<State, U>
 where
     State: 'static + Send,
-    U: Fn(&mut bool, &imgui::Ui, &mut State),
+    U: Fn(&mut bool, &mut imgui::Ui, &mut State),
     U: 'static + Send,
 {
     fn on_frame(&mut self) {
@@ -249,9 +249,9 @@ where
             self.last_frame = now;
         }
 
-        let ui = self.imgui_context.frame();
+        let mut ui = self.imgui_context.frame();
 
-        (self.user_update)(&mut self.run, &ui, &mut self.user_state);
+        (self.user_update)(&mut self.run, &mut ui, &mut self.user_state);
 
         let io = ui.io();
         if !io
