@@ -27,6 +27,9 @@ use baseview::{Event, Window, WindowHandler, WindowScalePolicy};
 
 use std::time::Instant;
 
+static CONTEXT_TRY_UNLOCK_WAIT_DURATIOIN: std::time::Duration =
+    std::time::Duration::from_micros(10);
+
 pub(crate) enum HandleMessage {
     CloseRequested,
 }
@@ -462,8 +465,6 @@ fn scale_pos_for_baseview(
     }
 }
 
-static SLEEP_DURATION: std::time::Duration = std::time::Duration::from_micros(10);
-
 fn use_context<F: FnMut(imgui::Context) -> imgui::SuspendedContext>(
     mut sus_context: imgui::SuspendedContext,
     mut f: F,
@@ -474,7 +475,7 @@ fn use_context<F: FnMut(imgui::Context) -> imgui::SuspendedContext>(
                 return (f)(context);
             }
             Err(new_sus_context) => {
-                std::thread::sleep(SLEEP_DURATION);
+                std::thread::sleep(CONTEXT_TRY_UNLOCK_WAIT_DURATIOIN);
                 sus_context = new_sus_context
             }
         };
