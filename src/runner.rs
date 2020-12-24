@@ -60,7 +60,7 @@ where
     user_update: U,
 
     handle_rx: rtrb::Consumer<HandleMessage>,
-    imgui_context: Option<imgui::SuspendedContext>,
+    sus_context: Option<imgui::SuspendedContext>,
     renderer: Renderer,
     last_frame: Instant,
     clear_color: (f32, f32, f32),
@@ -109,13 +109,13 @@ where
                     use imgui::{BackendFlags, Key};
                     use keyboard_types::Code;
 
-                    let mut imgui_context = imgui::SuspendedContext::create();
+                    let mut sus_context = imgui::SuspendedContext::create();
 
                     let mut scale: f64 = 0.0;
                     let mut hidpi_factor: f64 = 0.0;
                     let mut renderer: Option<Renderer> = None;
 
-                    imgui_context = use_context(imgui_context, |mut context| {
+                    sus_context = use_context(sus_context, |mut context| {
                         context.set_ini_filename(None);
 
                         let io = context.io_mut();
@@ -176,7 +176,7 @@ where
                         user_update: update,
 
                         handle_rx,
-                        imgui_context: Some(imgui_context),
+                        sus_context: Some(sus_context),
                         renderer: renderer.unwrap(),
                         last_frame: Instant::now(),
                         clear_color,
@@ -228,8 +228,8 @@ where
     U: 'static + Send,
 {
     fn on_frame(&mut self) {
-        self.imgui_context = Some(use_context(
-            self.imgui_context.take().unwrap(),
+        self.sus_context = Some(use_context(
+            self.sus_context.take().unwrap(),
             |mut context| {
                 // Poll handle messages.
                 while let Ok(message) = self.handle_rx.pop() {
@@ -292,8 +292,8 @@ where
     }
 
     fn on_event(&mut self, _window: &mut Window, event: Event) {
-        self.imgui_context = Some(use_context(
-            self.imgui_context.take().unwrap(),
+        self.sus_context = Some(use_context(
+            self.sus_context.take().unwrap(),
             |mut context| {
                 let io = context.io_mut();
 
