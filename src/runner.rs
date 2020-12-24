@@ -27,7 +27,7 @@ use baseview::{Event, Window, WindowHandler, WindowScalePolicy};
 
 use std::time::Instant;
 
-static CONTEXT_TRY_UNLOCK_WAIT_DURATIOIN: std::time::Duration =
+static CONTEXT_TRY_UNLOCK_WAIT_DURATION: std::time::Duration =
     std::time::Duration::from_micros(10);
 
 pub(crate) enum HandleMessage {
@@ -476,7 +476,7 @@ fn use_context<F: FnMut(imgui::Context) -> imgui::SuspendedContext>(
                 return (f)(context);
             }
             Err(new_sus_context) => {
-                std::thread::sleep(CONTEXT_TRY_UNLOCK_WAIT_DURATIOIN);
+                std::thread::sleep(CONTEXT_TRY_UNLOCK_WAIT_DURATION);
                 sus_context = new_sus_context
             }
         };
