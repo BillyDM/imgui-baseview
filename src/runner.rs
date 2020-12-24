@@ -27,8 +27,7 @@ use baseview::{Event, Window, WindowHandler, WindowScalePolicy};
 
 use std::time::Instant;
 
-static CONTEXT_TRY_UNLOCK_WAIT_DURATION: std::time::Duration =
-    std::time::Duration::from_micros(10);
+static CONTEXT_TRY_UNLOCK_WAIT_DURATION: std::time::Duration = std::time::Duration::from_micros(10);
 
 pub(crate) enum HandleMessage {
     CloseRequested,
@@ -83,12 +82,24 @@ where
     U: Fn(&mut bool, &imgui::Ui, &mut State),
     U: 'static + Send,
 {
-    /// Open a new window
-    pub fn open(
+    /// Open a new window.
+    ///
+    /// * `settings` - The settings of the window.
+    /// * `state` - The initial state of your application.
+    /// * `build` - Called once in the constructor. This can be used to make any additional
+    /// configurations to the `imgui::Io` struct.
+    /// * `update` - Called before each frame. Here you should update the state of your
+    /// application and build the UI.
+    pub fn open<B>(
         settings: Settings,
-        state: State,
+        mut state: State,
+        build: B,
         update: U,
-    ) -> (Handle, Option<baseview::AppRunner>) {
+    ) -> (Handle, Option<baseview::AppRunner>)
+    where
+        B: Fn(&mut imgui::Io, &mut State),
+        B: 'static + Send,
+    {
         let (handle_tx, handle_rx) = rtrb::RingBuffer::new(Handle::QUEUE_SIZE).split();
 
         // WindowScalePolicy does not implement copy/clone.
@@ -160,6 +171,9 @@ where
                         io[Key::X] = Code::KeyX as _;
                         io[Key::Y] = Code::KeyY as _;
                         io[Key::Z] = Code::KeyZ as _;
+
+                        (build)(io, &mut state);
+
                         context.set_platform_name(Some(imgui::ImString::from(format!(
                             "imgui-baseview {}",
                             env!("CARGO_PKG_VERSION")
