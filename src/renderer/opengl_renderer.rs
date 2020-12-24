@@ -47,4 +47,8 @@ impl Renderer {
         self.context.swap_buffers();
         self.context.make_not_current();
     }
+
+    pub fn name() -> String {
+        String::from("imgui_opengl_renderer v0.10")
+    }
 }

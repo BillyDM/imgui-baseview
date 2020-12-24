@@ -164,6 +164,7 @@ where
                             "imgui-baseview {}",
                             env!("CARGO_PKG_VERSION")
                         ))));
+                        context.set_renderer_name(Some(imgui::ImString::from(Renderer::name())));
 
                         renderer = Some(Renderer::new(
                             window,
