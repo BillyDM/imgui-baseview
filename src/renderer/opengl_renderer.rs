@@ -49,6 +49,6 @@ impl Renderer {
     }
 
     pub fn name() -> String {
-        String::from("imgui_opengl_renderer v0.10")
+        String::from("imgui_opengl_renderer 0.10")
     }
 }
