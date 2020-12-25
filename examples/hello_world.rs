@@ -21,7 +21,7 @@ fn main() {
         settings,
         state,
         // Called once in the constructor. This can be used to make any additional
-        // configurations to the `imgui::Io` struct.
+        // configurations to the `imgui::Context` struct.
         |_context: &mut Context, _state: &mut ()| {},
         // Called before each frame. Here you should update the state of your
         // application and build the UI.
