@@ -1,5 +1,5 @@
 use baseview::{Parent, Size, WindowOpenOptions, WindowScalePolicy};
-use imgui::{Io, Ui};
+use imgui::{Context, Ui};
 use imgui_baseview::{HiDpiMode, RenderSettings, Runner, Settings};
 
 fn main() {
@@ -20,7 +20,7 @@ fn main() {
     let (_, opt_app_runner) = Runner::open(
         settings,
         state,
-        |_io: &mut Io, _state: &mut ()| {},
+        |_context: &mut Context, _state: &mut ()| {},
         |run: &mut bool, ui: &Ui, _state: &mut ()| {
             ui.show_demo_window(run);
         },
