@@ -87,7 +87,7 @@ where
     /// * `settings` - The settings of the window.
     /// * `state` - The initial state of your application.
     /// * `build` - Called once in the constructor. This can be used to make any additional
-    /// configurations to the `imgui::Io` struct.
+    /// configurations to the `imgui::Context` struct.
     /// * `update` - Called before each frame. Here you should update the state of your
     /// application and build the UI.
     pub fn open<B>(
@@ -97,7 +97,7 @@ where
         update: U,
     ) -> (Handle, Option<baseview::AppRunner>)
     where
-        B: Fn(&mut imgui::Io, &mut State),
+        B: Fn(&mut imgui::Context, &mut State),
         B: 'static + Send,
     {
         let (handle_tx, handle_rx) = rtrb::RingBuffer::new(Handle::QUEUE_SIZE).split();
@@ -172,7 +172,7 @@ where
                         io[Key::Y] = Code::KeyY as _;
                         io[Key::Z] = Code::KeyZ as _;
 
-                        (build)(io, &mut state);
+                        (build)(&mut context, &mut state);
 
                         context.set_platform_name(Some(imgui::ImString::from(format!(
                             "imgui-baseview {}",
