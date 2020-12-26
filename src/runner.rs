@@ -55,7 +55,7 @@ impl Handle {
 pub struct Runner<State, U>
 where
     State: 'static + Send,
-    U: Fn(&mut bool, &imgui::Ui, &mut State),
+    U: FnMut(&mut bool, &imgui::Ui, &mut State),
     U: 'static + Send,
 {
     user_state: State,
@@ -79,7 +79,7 @@ where
 impl<State, U> Runner<State, U>
 where
     State: 'static + Send,
-    U: Fn(&mut bool, &imgui::Ui, &mut State),
+    U: FnMut(&mut bool, &imgui::Ui, &mut State),
     U: 'static + Send,
 {
     /// Open a new window.
@@ -242,7 +242,7 @@ where
 impl<State, U> WindowHandler for Runner<State, U>
 where
     State: 'static + Send,
-    U: Fn(&mut bool, &imgui::Ui, &mut State),
+    U: FnMut(&mut bool, &imgui::Ui, &mut State),
     U: 'static + Send,
 {
     fn on_frame(&mut self) {
