@@ -13,7 +13,7 @@ A [`baseview`] backend for [`imgui-rs`].
 
 ```rust
 use baseview::{Parent, Size, WindowOpenOptions, WindowScalePolicy};
-use imgui::{im_str, Condition, Io, Ui, Window};
+use imgui::{im_str, Condition, Context, Ui, Window};
 use imgui_baseview::{HiDpiMode, RenderSettings, Runner, Settings};
 
 fn main() {
@@ -35,8 +35,8 @@ fn main() {
         settings,
         state,
         // Called once in the constructor. This can be used to make any additional
-        // configurations to the `imgui::Io` struct.
-        |_io: &mut Io, _state: &mut ()| {},
+        // configurations to the `imgui::Context` struct.
+        |_context: &mut Context, _state: &mut ()| {},
         // Called before each frame. Here you should update the state of your
         // application and build the UI.
         |run: &mut bool, ui: &Ui, _state: &mut ()| {
