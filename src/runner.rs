@@ -328,16 +328,16 @@ where
                         }
                         baseview::MouseEvent::ButtonPressed(button) => match button {
                             baseview::MouseButton::Left => self.mouse_buttons[0].set(true),
-                            baseview::MouseButton::Middle => self.mouse_buttons[1].set(true),
-                            baseview::MouseButton::Right => self.mouse_buttons[2].set(true),
+                            baseview::MouseButton::Middle => self.mouse_buttons[2].set(true),
+                            baseview::MouseButton::Right => self.mouse_buttons[1].set(true),
                             baseview::MouseButton::Other(3) => self.mouse_buttons[3].set(true),
                             baseview::MouseButton::Other(4) => self.mouse_buttons[4].set(true),
                             _ => {}
                         },
                         baseview::MouseEvent::ButtonReleased(button) => match button {
                             baseview::MouseButton::Left => self.mouse_buttons[0].set(false),
-                            baseview::MouseButton::Middle => self.mouse_buttons[1].set(false),
-                            baseview::MouseButton::Right => self.mouse_buttons[2].set(false),
+                            baseview::MouseButton::Middle => self.mouse_buttons[2].set(false),
+                            baseview::MouseButton::Right => self.mouse_buttons[1].set(false),
                             baseview::MouseButton::Other(3) => self.mouse_buttons[3].set(false),
                             baseview::MouseButton::Other(4) => self.mouse_buttons[4].set(false),
                             _ => {}
