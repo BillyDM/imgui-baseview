@@ -542,27 +542,3 @@ fn use_context<F: FnMut(imgui::Context) -> imgui::SuspendedContext>(
         };
     }
 }
-
-#[cfg(target_os = "macos")]
-unsafe impl HasRawWindowHandle for VstParent {
-    fn raw_window_handle(&self) -> RawWindowHandle {
-        use raw_window_handle::macos::MacOSHandle;
-
-        RawWindowHandle::MacOS(MacOSHandle {
-            ns_view: self.0 as *mut ::std::ffi::c_void,
-            ..MacOSHandle::empty()
-        })
-    }
-}
-
-#[cfg(target_os = "windows")]
-unsafe impl HasRawWindowHandle for VstParent {
-    fn raw_window_handle(&self) -> RawWindowHandle {
-        use raw_window_handle::windows::WindowsHandle;
-
-        RawWindowHandle::Windows(WindowsHandle {
-            hwnd: self.0,
-            ..WindowsHandle::empty()
-        })
-    }
-}
