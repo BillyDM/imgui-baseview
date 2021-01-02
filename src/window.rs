@@ -20,8 +20,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-use crate::mouse;
 use crate::renderer::Renderer;
+use crate::{mouse, renderer};
 use crate::{HiDpiMode, Settings};
 use baseview::{Event, Window, WindowHandler, WindowScalePolicy};
 use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
@@ -30,32 +30,35 @@ use std::time::Instant;
 
 static CONTEXT_TRY_UNLOCK_WAIT_DURATION: std::time::Duration = std::time::Duration::from_micros(10);
 
-struct VstParent(*mut ::std::ffi::c_void);
-
-pub(crate) enum HandleMessage {
-    CloseRequested,
+struct OpenSettings {
+    pub scale_policy: WindowScalePolicy,
+    pub logical_width: f64,
+    pub logical_height: f64,
+    pub hidpi_mode: HiDpiMode,
+    pub clear_color: (f32, f32, f32),
 }
 
-#[allow(missing_debug_implementations)]
-pub struct Handle {
-    handle_tx: rtrb::Producer<HandleMessage>,
-}
+impl OpenSettings {
+    fn new(settings: &Settings) -> Self {
+        // WindowScalePolicy does not implement copy/clone.
+        let scale_policy = match &settings.window.scale {
+            WindowScalePolicy::SystemScaleFactor => WindowScalePolicy::SystemScaleFactor,
+            WindowScalePolicy::ScaleFactor(scale) => WindowScalePolicy::ScaleFactor(*scale),
+        };
 
-impl Handle {
-    pub const QUEUE_SIZE: usize = 10;
-
-    pub(crate) fn new(handle_tx: rtrb::Producer<HandleMessage>) -> Self {
-        Self { handle_tx }
-    }
-
-    pub fn request_window_close(&mut self) {
-        self.handle_tx.push(HandleMessage::CloseRequested).unwrap();
+        Self {
+            scale_policy,
+            logical_width: settings.window.size.width as f64,
+            logical_height: settings.window.size.height as f64,
+            hidpi_mode: settings.hidpi_mode,
+            clear_color: settings.clear_color,
+        }
     }
 }
 
 /// Handles an imgui-baseview application
 #[allow(missing_debug_implementations)]
-pub struct Runner<State, U>
+pub struct ImguiWindow<State, U>
 where
     State: 'static + Send,
     U: FnMut(&mut bool, &imgui::Ui, &mut State),
@@ -64,7 +67,6 @@ where
     user_state: State,
     user_update: U,
 
-    handle_rx: rtrb::Consumer<HandleMessage>,
     sus_context: Option<imgui::SuspendedContext>,
     renderer: Renderer,
     last_frame: Instant,
@@ -79,13 +81,140 @@ where
     run: bool,
 }
 
-impl<State, U> Runner<State, U>
+impl<State, U> ImguiWindow<State, U>
 where
     State: 'static + Send,
     U: FnMut(&mut bool, &imgui::Ui, &mut State),
     U: 'static + Send,
 {
-    /// Open a new window.
+    fn new<B>(
+        window: &mut baseview::Window<'_>,
+        open_settings: OpenSettings,
+        mut render_settings: Option<renderer::RenderSettings>,
+        build: B,
+        update: U,
+        mut state: State,
+    ) -> ImguiWindow<State, U>
+    where
+        B: Fn(&mut imgui::Context, &mut State),
+        B: 'static + Send,
+    {
+        use imgui::{BackendFlags, Key};
+        use keyboard_types::Code;
+
+        let mut sus_context = imgui::SuspendedContext::create();
+
+        let mut scale: f64 = 0.0;
+        let mut hidpi_factor: f64 = 0.0;
+        let mut renderer: Option<Renderer> = None;
+
+        sus_context = use_context(sus_context, |mut context| {
+            context.set_ini_filename(None);
+
+            let io = context.io_mut();
+
+            // Assume scale for now until there is an event with a new one.
+            scale = match open_settings.scale_policy {
+                WindowScalePolicy::ScaleFactor(scale) => scale,
+                WindowScalePolicy::SystemScaleFactor => 1.0,
+            };
+            hidpi_factor = open_settings.hidpi_mode.apply(scale);
+            let logical_size = [
+                (open_settings.logical_width * scale / hidpi_factor) as f32,
+                (open_settings.logical_height * scale / hidpi_factor) as f32,
+            ];
+            io.display_framebuffer_scale = [hidpi_factor as f32, hidpi_factor as f32];
+            io.display_size = logical_size;
+
+            io.backend_flags.insert(BackendFlags::HAS_MOUSE_CURSORS);
+            io.backend_flags.insert(BackendFlags::HAS_SET_MOUSE_POS);
+            io[Key::Tab] = Code::Tab as _;
+            io[Key::LeftArrow] = Code::ArrowLeft as _;
+            io[Key::RightArrow] = Code::ArrowLeft as _;
+            io[Key::UpArrow] = Code::ArrowUp as _;
+            io[Key::DownArrow] = Code::ArrowDown as _;
+            io[Key::PageUp] = Code::PageUp as _;
+            io[Key::PageDown] = Code::PageDown as _;
+            io[Key::Home] = Code::Home as _;
+            io[Key::End] = Code::End as _;
+            io[Key::Insert] = Code::Insert as _;
+            io[Key::Delete] = Code::Delete as _;
+            io[Key::Backspace] = Code::Backspace as _;
+            io[Key::Space] = Code::Space as _;
+            io[Key::Enter] = Code::Enter as _;
+            io[Key::Escape] = Code::Escape as _;
+            io[Key::KeyPadEnter] = Code::NumpadEnter as _;
+            io[Key::A] = Code::KeyA as _;
+            io[Key::C] = Code::KeyC as _;
+            io[Key::V] = Code::KeyV as _;
+            io[Key::X] = Code::KeyX as _;
+            io[Key::Y] = Code::KeyY as _;
+            io[Key::Z] = Code::KeyZ as _;
+
+            (build)(&mut context, &mut state);
+
+            context.set_platform_name(Some(imgui::ImString::from(format!(
+                "imgui-baseview {}",
+                env!("CARGO_PKG_VERSION")
+            ))));
+            context.set_renderer_name(Some(imgui::ImString::from(Renderer::name())));
+
+            renderer = Some(Renderer::new(
+                window,
+                &mut context,
+                render_settings.take().unwrap(),
+            ));
+
+            context.suspend()
+        });
+
+        Self {
+            user_state: state,
+            user_update: update,
+
+            sus_context: Some(sus_context),
+            renderer: renderer.unwrap(),
+            last_frame: Instant::now(),
+            clear_color: open_settings.clear_color,
+            scale_policy: open_settings.scale_policy,
+            scale_factor: scale,
+
+            hidpi_mode: open_settings.hidpi_mode,
+            hidpi_factor,
+            cursor_cache: None,
+            mouse_buttons: [mouse::Button::INIT; 5],
+            run: true,
+        }
+    }
+
+    /// Open a new child window.
+    ///
+    /// * `parent` - The parent window.
+    /// * `settings` - The settings of the window.
+    /// * `state` - The initial state of your application.
+    /// * `build` - Called once in the constructor. This can be used to make any additional
+    /// configurations to the `imgui::Context` struct.
+    /// * `update` - Called before each frame. Here you should update the state of your
+    /// application and build the UI.
+    pub fn open_parented<P, B>(parent: &P, settings: Settings, state: State, build: B, update: U)
+    where
+        P: HasRawWindowHandle,
+        B: Fn(&mut imgui::Context, &mut State),
+        B: 'static + Send,
+    {
+        let open_settings = OpenSettings::new(&settings);
+        let render_settings = Some(settings.render_settings);
+
+        Window::open_parented(
+            parent,
+            settings.window,
+            move |window: &mut baseview::Window<'_>| -> ImguiWindow<State, U> {
+                ImguiWindow::new(window, open_settings, render_settings, build, update, state)
+            },
+        )
+    }
+
+    /// Open a new window as if it had a parent window.
     ///
     /// * `settings` - The settings of the window.
     /// * `state` - The initial state of your application.
@@ -93,128 +222,49 @@ where
     /// configurations to the `imgui::Context` struct.
     /// * `update` - Called before each frame. Here you should update the state of your
     /// application and build the UI.
-    pub fn open<B>(
-        parent: Option<*mut ::std::ffi::c_void>,
+    pub fn open_as_if_parented<B>(
         settings: Settings,
-        mut state: State,
+        state: State,
         build: B,
         update: U,
-    ) -> Handle
+    ) -> RawWindowHandle
     where
         B: Fn(&mut imgui::Context, &mut State),
         B: 'static + Send,
     {
-        let (handle_tx, handle_rx) = rtrb::RingBuffer::new(Handle::QUEUE_SIZE).split();
+        let open_settings = OpenSettings::new(&settings);
+        let render_settings = Some(settings.render_settings);
 
-        // WindowScalePolicy does not implement copy/clone.
-        let scale_policy = match &settings.window.scale {
-            WindowScalePolicy::SystemScaleFactor => WindowScalePolicy::SystemScaleFactor,
-            WindowScalePolicy::ScaleFactor(scale) => WindowScalePolicy::ScaleFactor(*scale),
-        };
+        Window::open_as_if_parented(
+            settings.window,
+            move |window: &mut baseview::Window<'_>| -> ImguiWindow<State, U> {
+                ImguiWindow::new(window, open_settings, render_settings, build, update, state)
+            },
+        )
+    }
 
-        let logical_width = settings.window.size.width as f64;
-        let logical_height = settings.window.size.height as f64;
+    /// Open a new window that blocks the current thread until the window is destroyed.
+    ///
+    /// * `settings` - The settings of the window.
+    /// * `state` - The initial state of your application.
+    /// * `build` - Called once in the constructor. This can be used to make any additional
+    /// configurations to the `imgui::Context` struct.
+    /// * `update` - Called before each frame. Here you should update the state of your
+    /// application and build the UI.
+    pub fn open_blocking<B>(settings: Settings, state: State, build: B, update: U)
+    where
+        B: Fn(&mut imgui::Context, &mut State),
+        B: 'static + Send,
+    {
+        let open_settings = OpenSettings::new(&settings);
+        let render_settings = Some(settings.render_settings);
 
-        let hidpi_mode = settings.hidpi_mode;
-        let mut render_settings = Some(settings.render_settings);
-        let clear_color = settings.clear_color;
-
-        let baseview_build = move |window: &mut baseview::Window<'_>| -> Runner<State, U> {
-            use imgui::{BackendFlags, Key};
-            use keyboard_types::Code;
-
-            let mut sus_context = imgui::SuspendedContext::create();
-
-            let mut scale: f64 = 0.0;
-            let mut hidpi_factor: f64 = 0.0;
-            let mut renderer: Option<Renderer> = None;
-
-            sus_context = use_context(sus_context, |mut context| {
-                context.set_ini_filename(None);
-
-                let io = context.io_mut();
-
-                // Assume scale for now until there is an event with a new one.
-                scale = match scale_policy {
-                    WindowScalePolicy::ScaleFactor(scale) => scale,
-                    WindowScalePolicy::SystemScaleFactor => 1.0,
-                };
-                hidpi_factor = hidpi_mode.apply(scale);
-                let logical_size = [
-                    (logical_width as f64 * scale / hidpi_factor) as f32,
-                    (logical_height as f64 * scale / hidpi_factor) as f32,
-                ];
-                io.display_framebuffer_scale = [hidpi_factor as f32, hidpi_factor as f32];
-                io.display_size = logical_size;
-
-                io.backend_flags.insert(BackendFlags::HAS_MOUSE_CURSORS);
-                io.backend_flags.insert(BackendFlags::HAS_SET_MOUSE_POS);
-                io[Key::Tab] = Code::Tab as _;
-                io[Key::LeftArrow] = Code::ArrowLeft as _;
-                io[Key::RightArrow] = Code::ArrowLeft as _;
-                io[Key::UpArrow] = Code::ArrowUp as _;
-                io[Key::DownArrow] = Code::ArrowDown as _;
-                io[Key::PageUp] = Code::PageUp as _;
-                io[Key::PageDown] = Code::PageDown as _;
-                io[Key::Home] = Code::Home as _;
-                io[Key::End] = Code::End as _;
-                io[Key::Insert] = Code::Insert as _;
-                io[Key::Delete] = Code::Delete as _;
-                io[Key::Backspace] = Code::Backspace as _;
-                io[Key::Space] = Code::Space as _;
-                io[Key::Enter] = Code::Enter as _;
-                io[Key::Escape] = Code::Escape as _;
-                io[Key::KeyPadEnter] = Code::NumpadEnter as _;
-                io[Key::A] = Code::KeyA as _;
-                io[Key::C] = Code::KeyC as _;
-                io[Key::V] = Code::KeyV as _;
-                io[Key::X] = Code::KeyX as _;
-                io[Key::Y] = Code::KeyY as _;
-                io[Key::Z] = Code::KeyZ as _;
-
-                (build)(&mut context, &mut state);
-
-                context.set_platform_name(Some(imgui::ImString::from(format!(
-                    "imgui-baseview {}",
-                    env!("CARGO_PKG_VERSION")
-                ))));
-                context.set_renderer_name(Some(imgui::ImString::from(Renderer::name())));
-
-                renderer = Some(Renderer::new(
-                    window,
-                    &mut context,
-                    render_settings.take().unwrap(),
-                ));
-
-                context.suspend()
-            });
-
-            Self {
-                user_state: state,
-                user_update: update,
-
-                handle_rx,
-                sus_context: Some(sus_context),
-                renderer: renderer.unwrap(),
-                last_frame: Instant::now(),
-                clear_color,
-                scale_policy,
-                scale_factor: scale,
-
-                hidpi_mode,
-                hidpi_factor,
-                cursor_cache: None,
-                mouse_buttons: [mouse::Button::INIT; 5],
-                run: true,
-            }
-        };
-
-        if let Some(parent) = parent {
-            Window::open_parented(&VstParent(parent), settings.window, baseview_build)
-        } else {
-            Window::open_blocking(settings.window, baseview_build)
-        };
-        Handle::new(handle_tx)
+        Window::open_blocking(
+            settings.window,
+            move |window: &mut baseview::Window<'_>| -> ImguiWindow<State, U> {
+                ImguiWindow::new(window, open_settings, render_settings, build, update, state)
+            },
+        )
     }
 
     /// Scales a logical position from baseview using the current DPI mode.
@@ -244,7 +294,7 @@ where
     }
 }
 
-impl<State, U> WindowHandler for Runner<State, U>
+impl<State, U> WindowHandler for ImguiWindow<State, U>
 where
     State: 'static + Send,
     U: FnMut(&mut bool, &imgui::Ui, &mut State),
@@ -254,15 +304,6 @@ where
         self.sus_context = Some(use_context(
             self.sus_context.take().unwrap(),
             |mut context| {
-                // Poll handle messages.
-                while let Ok(message) = self.handle_rx.pop() {
-                    match message {
-                        HandleMessage::CloseRequested => {
-                            // TODO: Send close message.
-                        }
-                    }
-                }
-
                 {
                     let io = context.io_mut();
 
@@ -522,18 +563,6 @@ unsafe impl HasRawWindowHandle for VstParent {
         RawWindowHandle::Windows(WindowsHandle {
             hwnd: self.0,
             ..WindowsHandle::empty()
-        })
-    }
-}
-
-#[cfg(target_os = "linux")]
-unsafe impl HasRawWindowHandle for VstParent {
-    fn raw_window_handle(&self) -> RawWindowHandle {
-        use raw_window_handle::unix::XcbHandle;
-
-        RawWindowHandle::Xcb(XcbHandle {
-            window: self.0 as u32,
-            ..XcbHandle::empty()
         })
     }
 }

@@ -1,6 +1,6 @@
 use baseview::{Size, WindowOpenOptions, WindowScalePolicy};
 use imgui::{Context, Ui};
-use imgui_baseview::{HiDpiMode, RenderSettings, Runner, Settings};
+use imgui_baseview::{HiDpiMode, ImguiWindow, RenderSettings, Settings};
 
 fn main() {
     let settings = Settings {
@@ -16,8 +16,7 @@ fn main() {
 
     let state = ();
 
-    Runner::open(
-        None,
+    ImguiWindow::open_blocking(
         settings,
         state,
         |_context: &mut Context, _state: &mut ()| {},
