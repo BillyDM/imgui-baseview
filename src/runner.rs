@@ -24,10 +24,13 @@ use crate::mouse;
 use crate::renderer::Renderer;
 use crate::{HiDpiMode, Settings};
 use baseview::{Event, Window, WindowHandler, WindowScalePolicy};
+use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 
 use std::time::Instant;
 
 static CONTEXT_TRY_UNLOCK_WAIT_DURATION: std::time::Duration = std::time::Duration::from_micros(10);
+
+struct VstParent(*mut ::std::ffi::c_void);
 
 pub(crate) enum HandleMessage {
     CloseRequested,
@@ -91,11 +94,12 @@ where
     /// * `update` - Called before each frame. Here you should update the state of your
     /// application and build the UI.
     pub fn open<B>(
+        parent: Option<*mut ::std::ffi::c_void>,
         settings: Settings,
         mut state: State,
         build: B,
         update: U,
-    ) -> (Handle, Option<baseview::AppRunner>)
+    ) -> Handle
     where
         B: Fn(&mut imgui::Context, &mut State),
         B: 'static + Send,
@@ -115,101 +119,102 @@ where
         let mut render_settings = Some(settings.render_settings);
         let clear_color = settings.clear_color;
 
-        (
-            Handle::new(handle_tx),
-            Window::open(
-                settings.window,
-                move |window: &mut baseview::Window<'_>| -> Runner<State, U> {
-                    use imgui::{BackendFlags, Key};
-                    use keyboard_types::Code;
+        let baseview_build = move |window: &mut baseview::Window<'_>| -> Runner<State, U> {
+            use imgui::{BackendFlags, Key};
+            use keyboard_types::Code;
 
-                    let mut sus_context = imgui::SuspendedContext::create();
+            let mut sus_context = imgui::SuspendedContext::create();
 
-                    let mut scale: f64 = 0.0;
-                    let mut hidpi_factor: f64 = 0.0;
-                    let mut renderer: Option<Renderer> = None;
+            let mut scale: f64 = 0.0;
+            let mut hidpi_factor: f64 = 0.0;
+            let mut renderer: Option<Renderer> = None;
 
-                    sus_context = use_context(sus_context, |mut context| {
-                        context.set_ini_filename(None);
+            sus_context = use_context(sus_context, |mut context| {
+                context.set_ini_filename(None);
 
-                        let io = context.io_mut();
+                let io = context.io_mut();
 
-                        // Assume scale for now until there is an event with a new one.
-                        scale = match scale_policy {
-                            WindowScalePolicy::ScaleFactor(scale) => scale,
-                            WindowScalePolicy::SystemScaleFactor => 1.0,
-                        };
-                        hidpi_factor = hidpi_mode.apply(scale);
-                        let logical_size = [
-                            (logical_width as f64 * scale / hidpi_factor) as f32,
-                            (logical_height as f64 * scale / hidpi_factor) as f32,
-                        ];
-                        io.display_framebuffer_scale = [hidpi_factor as f32, hidpi_factor as f32];
-                        io.display_size = logical_size;
+                // Assume scale for now until there is an event with a new one.
+                scale = match scale_policy {
+                    WindowScalePolicy::ScaleFactor(scale) => scale,
+                    WindowScalePolicy::SystemScaleFactor => 1.0,
+                };
+                hidpi_factor = hidpi_mode.apply(scale);
+                let logical_size = [
+                    (logical_width as f64 * scale / hidpi_factor) as f32,
+                    (logical_height as f64 * scale / hidpi_factor) as f32,
+                ];
+                io.display_framebuffer_scale = [hidpi_factor as f32, hidpi_factor as f32];
+                io.display_size = logical_size;
 
-                        io.backend_flags.insert(BackendFlags::HAS_MOUSE_CURSORS);
-                        io.backend_flags.insert(BackendFlags::HAS_SET_MOUSE_POS);
-                        io[Key::Tab] = Code::Tab as _;
-                        io[Key::LeftArrow] = Code::ArrowLeft as _;
-                        io[Key::RightArrow] = Code::ArrowLeft as _;
-                        io[Key::UpArrow] = Code::ArrowUp as _;
-                        io[Key::DownArrow] = Code::ArrowDown as _;
-                        io[Key::PageUp] = Code::PageUp as _;
-                        io[Key::PageDown] = Code::PageDown as _;
-                        io[Key::Home] = Code::Home as _;
-                        io[Key::End] = Code::End as _;
-                        io[Key::Insert] = Code::Insert as _;
-                        io[Key::Delete] = Code::Delete as _;
-                        io[Key::Backspace] = Code::Backspace as _;
-                        io[Key::Space] = Code::Space as _;
-                        io[Key::Enter] = Code::Enter as _;
-                        io[Key::Escape] = Code::Escape as _;
-                        io[Key::KeyPadEnter] = Code::NumpadEnter as _;
-                        io[Key::A] = Code::KeyA as _;
-                        io[Key::C] = Code::KeyC as _;
-                        io[Key::V] = Code::KeyV as _;
-                        io[Key::X] = Code::KeyX as _;
-                        io[Key::Y] = Code::KeyY as _;
-                        io[Key::Z] = Code::KeyZ as _;
+                io.backend_flags.insert(BackendFlags::HAS_MOUSE_CURSORS);
+                io.backend_flags.insert(BackendFlags::HAS_SET_MOUSE_POS);
+                io[Key::Tab] = Code::Tab as _;
+                io[Key::LeftArrow] = Code::ArrowLeft as _;
+                io[Key::RightArrow] = Code::ArrowLeft as _;
+                io[Key::UpArrow] = Code::ArrowUp as _;
+                io[Key::DownArrow] = Code::ArrowDown as _;
+                io[Key::PageUp] = Code::PageUp as _;
+                io[Key::PageDown] = Code::PageDown as _;
+                io[Key::Home] = Code::Home as _;
+                io[Key::End] = Code::End as _;
+                io[Key::Insert] = Code::Insert as _;
+                io[Key::Delete] = Code::Delete as _;
+                io[Key::Backspace] = Code::Backspace as _;
+                io[Key::Space] = Code::Space as _;
+                io[Key::Enter] = Code::Enter as _;
+                io[Key::Escape] = Code::Escape as _;
+                io[Key::KeyPadEnter] = Code::NumpadEnter as _;
+                io[Key::A] = Code::KeyA as _;
+                io[Key::C] = Code::KeyC as _;
+                io[Key::V] = Code::KeyV as _;
+                io[Key::X] = Code::KeyX as _;
+                io[Key::Y] = Code::KeyY as _;
+                io[Key::Z] = Code::KeyZ as _;
 
-                        (build)(&mut context, &mut state);
+                (build)(&mut context, &mut state);
 
-                        context.set_platform_name(Some(imgui::ImString::from(format!(
-                            "imgui-baseview {}",
-                            env!("CARGO_PKG_VERSION")
-                        ))));
-                        context.set_renderer_name(Some(imgui::ImString::from(Renderer::name())));
+                context.set_platform_name(Some(imgui::ImString::from(format!(
+                    "imgui-baseview {}",
+                    env!("CARGO_PKG_VERSION")
+                ))));
+                context.set_renderer_name(Some(imgui::ImString::from(Renderer::name())));
 
-                        renderer = Some(Renderer::new(
-                            window,
-                            &mut context,
-                            render_settings.take().unwrap(),
-                        ));
+                renderer = Some(Renderer::new(
+                    window,
+                    &mut context,
+                    render_settings.take().unwrap(),
+                ));
 
-                        context.suspend()
-                    });
+                context.suspend()
+            });
 
-                    Self {
-                        user_state: state,
-                        user_update: update,
+            Self {
+                user_state: state,
+                user_update: update,
 
-                        handle_rx,
-                        sus_context: Some(sus_context),
-                        renderer: renderer.unwrap(),
-                        last_frame: Instant::now(),
-                        clear_color,
-                        scale_policy,
-                        scale_factor: scale,
+                handle_rx,
+                sus_context: Some(sus_context),
+                renderer: renderer.unwrap(),
+                last_frame: Instant::now(),
+                clear_color,
+                scale_policy,
+                scale_factor: scale,
 
-                        hidpi_mode,
-                        hidpi_factor,
-                        cursor_cache: None,
-                        mouse_buttons: [mouse::Button::INIT; 5],
-                        run: true,
-                    }
-                },
-            ),
-        )
+                hidpi_mode,
+                hidpi_factor,
+                cursor_cache: None,
+                mouse_buttons: [mouse::Button::INIT; 5],
+                run: true,
+            }
+        };
+
+        if let Some(parent) = parent {
+            Window::open_parented(&VstParent(parent), settings.window, baseview_build)
+        } else {
+            Window::open_blocking(settings.window, baseview_build)
+        };
+        Handle::new(handle_tx)
     }
 
     /// Scales a logical position from baseview using the current DPI mode.
@@ -494,5 +499,41 @@ fn use_context<F: FnMut(imgui::Context) -> imgui::SuspendedContext>(
                 sus_context = new_sus_context
             }
         };
+    }
+}
+
+#[cfg(target_os = "macos")]
+unsafe impl HasRawWindowHandle for VstParent {
+    fn raw_window_handle(&self) -> RawWindowHandle {
+        use raw_window_handle::macos::MacOSHandle;
+
+        RawWindowHandle::MacOS(MacOSHandle {
+            ns_view: self.0 as *mut ::std::ffi::c_void,
+            ..MacOSHandle::empty()
+        })
+    }
+}
+
+#[cfg(target_os = "windows")]
+unsafe impl HasRawWindowHandle for VstParent {
+    fn raw_window_handle(&self) -> RawWindowHandle {
+        use raw_window_handle::windows::WindowsHandle;
+
+        RawWindowHandle::Windows(WindowsHandle {
+            hwnd: self.0,
+            ..WindowsHandle::empty()
+        })
+    }
+}
+
+#[cfg(target_os = "linux")]
+unsafe impl HasRawWindowHandle for VstParent {
+    fn raw_window_handle(&self) -> RawWindowHandle {
+        use raw_window_handle::unix::XcbHandle;
+
+        RawWindowHandle::Xcb(XcbHandle {
+            window: self.0 as u32,
+            ..XcbHandle::empty()
+        })
     }
 }

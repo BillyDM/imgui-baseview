@@ -25,3 +25,4 @@ gl = { version = "0.14", optional = true }
 keyboard-types = { version = "0.5", default-features = false }
 baseview = { git = "https://github.com/RustAudio/baseview.git", branch = "master" }
 rtrb = "0.1"
+raw-window-handle = "0.3"

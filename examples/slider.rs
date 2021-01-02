@@ -1,4 +1,4 @@
-use baseview::{Parent, Size, WindowOpenOptions, WindowScalePolicy};
+use baseview::{Size, WindowOpenOptions, WindowScalePolicy};
 use imgui::*;
 use imgui_baseview::{HiDpiMode, RenderSettings, Runner, Settings};
 
@@ -7,7 +7,6 @@ fn main() {
         window: WindowOpenOptions {
             title: String::from("imgui-baseview slider"),
             size: Size::new(800.0, 600.0),
-            parent: Parent::None,
             scale: WindowScalePolicy::SystemScaleFactor,
         },
         clear_color: (0.0, 0.0, 0.0),
@@ -15,7 +14,8 @@ fn main() {
         render_settings: RenderSettings::default(),
     };
 
-    let (_, opt_app_runner) = Runner::open(
+    Runner::open(
+        None,
         settings,
         State::default(),
         |_context: &mut Context, _state: &mut State| {},
@@ -28,8 +28,6 @@ fn main() {
             }
         },
     );
-
-    opt_app_runner.unwrap().app_run_blocking();
 }
 
 fn example_selector(run: &mut bool, ui: &Ui, state: &mut State) {

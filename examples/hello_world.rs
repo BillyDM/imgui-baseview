@@ -1,4 +1,4 @@
-use baseview::{Parent, Size, WindowOpenOptions, WindowScalePolicy};
+use baseview::{Size, WindowOpenOptions, WindowScalePolicy};
 use imgui::{im_str, Condition, Context, Ui, Window};
 use imgui_baseview::{HiDpiMode, RenderSettings, Runner, Settings};
 
@@ -7,7 +7,6 @@ fn main() {
         window: WindowOpenOptions {
             title: String::from("imgui-baseview hello world"),
             size: Size::new(300.0, 110.0),
-            parent: Parent::None,
             scale: WindowScalePolicy::SystemScaleFactor,
         },
         clear_color: (0.0, 0.0, 0.0),
@@ -17,7 +16,8 @@ fn main() {
 
     let state = ();
 
-    let (_, opt_app_runner) = Runner::open(
+    Runner::open(
+        None,
         settings,
         state,
         // Called once in the constructor. This can be used to make any additional
@@ -43,6 +43,4 @@ fn main() {
                 });
         },
     );
-
-    opt_app_runner.unwrap().app_run_blocking();
 }
