@@ -23,7 +23,7 @@ SOFTWARE.
 use crate::renderer::Renderer;
 use crate::{mouse, renderer};
 use crate::{HiDpiMode, Settings};
-use baseview::{Event, Window, WindowHandler, WindowScalePolicy};
+use baseview::{Event, EventStatus, Window, WindowHandler, WindowScalePolicy};
 use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 
 use std::time::Instant;
@@ -300,7 +300,7 @@ where
     U: FnMut(&mut bool, &imgui::Ui, &mut State),
     U: 'static + Send,
 {
-    fn on_frame(&mut self) {
+    fn on_frame(&mut self, _window: &mut Window) {
         self.sus_context = Some(use_context(
             self.sus_context.take().unwrap(),
             |mut context| {
@@ -355,7 +355,7 @@ where
         ));
     }
 
-    fn on_event(&mut self, _window: &mut Window, event: Event) {
+    fn on_event(&mut self, _window: &mut Window, event: Event) -> EventStatus {
         self.sus_context = Some(use_context(
             self.sus_context.take().unwrap(),
             |mut context| {
@@ -483,6 +483,8 @@ where
                 context.suspend()
             },
         ));
+
+        EventStatus::Captured
     }
 }
 
