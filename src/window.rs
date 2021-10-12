@@ -153,11 +153,11 @@ where
 
             (build)(&mut context, &mut state);
 
-            context.set_platform_name(Some(imgui::ImString::from(format!(
+            context.set_platform_name(Some(format!(
                 "imgui-baseview {}",
                 env!("CARGO_PKG_VERSION")
-            ))));
-            context.set_renderer_name(Some(imgui::ImString::from(Renderer::name())));
+            )));
+            context.set_renderer_name(Some(Renderer::name()));
 
             renderer = Some(Renderer::new(
                 window,

@@ -1,5 +1,5 @@
 use baseview::{Size, WindowOpenOptions, WindowScalePolicy};
-use imgui::{im_str, Condition, Context, Ui, Window};
+use imgui::{Condition, Context, Ui, Window};
 use imgui_baseview::{HiDpiMode, ImguiWindow, RenderSettings, Settings};
 
 fn main() {
@@ -25,14 +25,14 @@ fn main() {
         // Called before each frame. Here you should update the state of your
         // application and build the UI.
         |run: &mut bool, ui: &Ui, _state: &mut ()| {
-            Window::new(im_str!("Hello world"))
+            Window::new("Hello world")
                 .opened(run)
                 .size([300.0, 110.0], Condition::FirstUseEver)
                 .position([0.0, 0.0], Condition::FirstUseEver)
                 .build(ui, || {
-                    ui.text(im_str!("Hello world!"));
-                    ui.text(im_str!("こんにちは世界！"));
-                    ui.text(im_str!("This...is...imgui-rs!"));
+                    ui.text("Hello world!");
+                    ui.text("こんにちは世界！");
+                    ui.text("This...is...imgui-rs!");
                     ui.separator();
                     let mouse_pos = ui.io().mouse_pos;
                     ui.text(format!(
