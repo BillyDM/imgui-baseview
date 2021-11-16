@@ -109,3 +109,9 @@ struct State {
 impl State {
     fn reset(&mut self) {}
 }
+
+impl Drop for State {
+    fn drop(&mut self) {
+        println!("Window is closing!");
+    }
+}
