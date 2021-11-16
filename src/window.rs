@@ -23,8 +23,8 @@ SOFTWARE.
 use crate::renderer::Renderer;
 use crate::{mouse, renderer};
 use crate::{HiDpiMode, Settings};
-use baseview::{Event, EventStatus, Window, WindowHandler, WindowScalePolicy};
-use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
+use baseview::{Event, EventStatus, Window, WindowHandle, WindowHandler, WindowScalePolicy};
+use raw_window_handle::HasRawWindowHandle;
 
 use std::time::Instant;
 
@@ -196,7 +196,13 @@ where
     /// configurations to the `imgui::Context` struct.
     /// * `update` - Called before each frame. Here you should update the state of your
     /// application and build the UI.
-    pub fn open_parented<P, B>(parent: &P, settings: Settings, state: State, build: B, update: U)
+    pub fn open_parented<P, B>(
+        parent: &P,
+        settings: Settings,
+        state: State,
+        build: B,
+        update: U,
+    ) -> WindowHandle
     where
         P: HasRawWindowHandle,
         B: Fn(&mut imgui::Context, &mut State),
@@ -227,7 +233,7 @@ where
         state: State,
         build: B,
         update: U,
-    ) -> RawWindowHandle
+    ) -> WindowHandle
     where
         B: Fn(&mut imgui::Context, &mut State),
         B: 'static + Send,
@@ -300,7 +306,7 @@ where
     U: FnMut(&mut bool, &imgui::Ui, &mut State),
     U: 'static + Send,
 {
-    fn on_frame(&mut self, _window: &mut Window) {
+    fn on_frame(&mut self, window: &mut Window) {
         self.sus_context = Some(use_context(
             self.sus_context.take().unwrap(),
             |mut context| {
@@ -349,6 +355,11 @@ where
                 }
 
                 self.renderer.render(ui, self.clear_color);
+
+                if !self.run {
+                    self.run = true;
+                    window.close();
+                }
 
                 context.suspend()
             },
