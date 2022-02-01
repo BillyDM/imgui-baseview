@@ -25,5 +25,5 @@ imgui-opengl-renderer = { git =" https://github.com/Fredemus/rust-imgui-opengl-r
 
 gl = { version = "0.14", optional = true }
 keyboard-types = { version = "0.5", default-features = false }
-baseview = { git = "https://github.com/RustAudio/baseview.git", rev = "f6e99e9aa6f5aeb6b721cb05e4d882a51d995909" }
-raw-window-handle = "0.3"
+baseview = { git = "https://github.com/RustAudio/baseview.git", rev = "004065e9a43e79751040879c572d95b9b63e0edc" }
+raw-window-handle = "0.4"
